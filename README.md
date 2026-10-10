@@ -2,6 +2,10 @@
 
 XWarp Connect 是面向 Windows 的 XWarp 客户端。输入服务端提供的 `XWARP://...` KEY 后，通过一个开关控制连接和 Windows 系统代理。
 
+深色界面突出 AI 专线：圆形电源开关、清晰的启停状态，以及 ChatGPT、Claude、Perplexity 等 AI 服务卡片。支持粘贴激活码和回车激活。
+
+![XWarp AI 专线客户端界面](docs/client-ready.png)
+
 ## 下载与使用
 
 在 [Releases](https://github.com/howellxuKing/xwarp-client/releases) 下载 Windows x64 ZIP，解压到可写目录，运行 `XWarp.exe`，粘贴 KEY 后开启专线。
@@ -41,6 +45,7 @@ Copy-Item xwarp-core.exe dist/XWarp/xwarp-core.exe
 ## 项目结构
 
 - `main.py`：界面、KEY 解析、核心进程和系统代理控制。
+- `client_ui.py`：AI 专线界面和状态展示。
 - `XWarp.spec`：PyInstaller 打包配置。
 - `logo.png`：客户端 Logo。
 

@@ -9,11 +9,10 @@ import os
 import json
 import base64
 import urllib.parse
-import threading
 import subprocess
 import winreg
 import ctypes
-from PIL import Image
+from client_ui import ClientUI
 import customtkinter as ctk
 
 # 设置外观主题
@@ -52,12 +51,12 @@ class WindowsProxyManager:
             return False
 
 
-class XWarpApp(ctk.CTk):
+class XWarpApp(ClientUI, ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("XWarp AI 专线客户端")
-        self.geometry("460x640")
+        self.title("XWarp AI 专线 · Connect")
+        self.geometry("520x800")
         self.resizable(False, False)
         self.configure(fg_color="#09090b")
 
@@ -122,182 +121,6 @@ class XWarpApp(ctk.CTk):
         except Exception as e:
             print("解析 URI 失败:", e)
             return None
-
-    def init_ui(self):
-        # 顶栏 Logo 展示
-        self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.header_frame.pack(pady=(28, 10), padx=20, fill="x")
-
-        logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
-        if os.path.exists(logo_path):
-            img = Image.open(logo_path)
-            self.logo_img = ctk.CTkImage(light_image=img, dark_image=img, size=(72, 72))
-            self.logo_label = ctk.CTkLabel(self.header_frame, text="", image=self.logo_img)
-            self.logo_label.pack()
-
-        # 标题文本
-        self.title_label = ctk.CTkLabel(
-            self.header_frame,
-            text="XWARP",
-            font=ctk.CTkFont(size=26, weight="bold"),
-            text_color="#e11d48"
-        )
-        self.title_label.pack(pady=(6, 2))
-
-        self.sub_label = ctk.CTkLabel(
-            self.header_frame,
-            text="全球 AI 极速专线 · 智能分流",
-            font=ctk.CTkFont(size=12),
-            text_color="#71717a"
-        )
-        self.sub_label.pack()
-
-        # 主内容区域容器
-        self.main_container = ctk.CTkFrame(self, fg_color="#18181b", corner_radius=16, border_width=1, border_color="#27272a")
-        self.main_container.pack(pady=16, padx=24, fill="both", expand=True)
-
-        if not self.parsed_node:
-            self.render_activation_ui()
-        else:
-            self.render_connected_ui()
-
-    def render_activation_ui(self):
-        # 清除容器内容
-        for widget in self.main_container.winfo_children():
-            widget.destroy()
-
-        prompt_label = ctk.CTkLabel(
-            self.main_container,
-            text="首次使用请激活",
-            font=ctk.CTkFont(size=18, weight="bold"),
-            text_color="#fafafa"
-        )
-        prompt_label.pack(pady=(36, 6))
-
-        desc_label = ctk.CTkLabel(
-            self.main_container,
-            text="请在下方粘贴您获得的专属激活码 KEY\n激活后即可一键连接全球主流 AI 官网",
-            font=ctk.CTkFont(size=12),
-            text_color="#a1a1aa",
-            justify="center"
-        )
-        desc_label.pack(pady=(0, 20))
-
-        self.key_entry = ctk.CTkEntry(
-            self.main_container,
-            placeholder_text="粘贴 XWARP:// 激活码...",
-            height=44,
-            corner_radius=10,
-            fg_color="#09090b",
-            border_color="#3f3f46",
-            text_color="#fafafa"
-        )
-        self.key_entry.pack(fill="x", padx=24, pady=10)
-
-        self.activate_btn = ctk.CTkButton(
-            self.main_container,
-            text="🚀 立即激活",
-            height=46,
-            corner_radius=10,
-            fg_color="#e11d48",
-            hover_color="#be123c",
-            font=ctk.CTkFont(size=15, weight="bold"),
-            command=self.on_activate_click
-        )
-        self.activate_btn.pack(fill="x", padx=24, pady=(12, 10))
-
-        self.status_msg = ctk.CTkLabel(self.main_container, text="", font=ctk.CTkFont(size=12), text_color="#ef4444")
-        self.status_msg.pack(pady=4)
-
-    def on_activate_click(self):
-        key_text = self.key_entry.get().strip()
-        parsed = self.parse_xwarp_key(key_text)
-        if not parsed:
-            self.status_msg.configure(text="无效的激活码格式，请核对后重试", text_color="#ef4444")
-            return
-
-        self.current_key = key_text
-        self.parsed_node = parsed
-        self.save_local_config()
-        self.render_connected_ui()
-
-    def render_connected_ui(self):
-        for widget in self.main_container.winfo_children():
-            widget.destroy()
-
-        # 状态徽章
-        self.status_badge = ctk.CTkLabel(
-            self.main_container,
-            text="● 未连接",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            text_color="#71717a"
-        )
-        self.status_badge.pack(pady=(28, 4))
-
-        # 节点简要信息
-        node_info = f"专线节点: {self.parsed_node['server']}"
-        self.node_info_label = ctk.CTkLabel(
-            self.main_container,
-            text=node_info,
-            font=ctk.CTkFont(size=11),
-            text_color="#52525b"
-        )
-        self.node_info_label.pack(pady=(0, 20))
-
-        # 核心超大开关按钮
-        self.toggle_btn = ctk.CTkButton(
-            self.main_container,
-            text="⚡ 一键开启 AI 专线",
-            height=68,
-            corner_radius=14,
-            fg_color="#e11d48",
-            hover_color="#be123c",
-            font=ctk.CTkFont(size=18, weight="bold"),
-            command=self.on_toggle_proxy
-        )
-        self.toggle_btn.pack(fill="x", padx=28, pady=10)
-
-        # 白名单放行提示框
-        info_box = ctk.CTkFrame(self.main_container, fg_color="#09090b", corner_radius=10, border_width=1, border_color="#27272a")
-        info_box.pack(fill="x", padx=24, pady=(20, 10))
-
-        tags = ["ChatGPT", "Claude", "Perplexity", "Midjourney", "DeepSeek", "Suno"]
-        tags_text = "  ·  ".join(tags)
-
-        ctk.CTkLabel(
-            info_box,
-            text="[ 已加速的国外 AI 工具 ]",
-            font=ctk.CTkFont(size=11, weight="bold"),
-            text_color="#e11d48"
-        ).pack(pady=(10, 4))
-
-        ctk.CTkLabel(
-            info_box,
-            text=tags_text + "\n\n(国内网页与应用自动直连，不耗专线网速)",
-            font=ctk.CTkFont(size=11),
-            text_color="#a1a1aa",
-            justify="center"
-        ).pack(pady=(0, 10))
-
-        # 底部小按钮：更换 KEY
-        reset_btn = ctk.CTkButton(
-            self.main_container,
-            text="更换激活码",
-            font=ctk.CTkFont(size=11),
-            text_color="#71717a",
-            fg_color="transparent",
-            hover_color="#27272a",
-            width=80,
-            height=26,
-            command=self.on_reset_key
-        )
-        reset_btn.pack(side="bottom", pady=12)
-
-    def on_toggle_proxy(self):
-        if not self.is_connected:
-            self.connect_proxy()
-        else:
-            self.disconnect_proxy()
 
     def get_core_path(self):
         if getattr(sys, 'frozen', False):
@@ -364,12 +187,7 @@ bandwidth:
         success = WindowsProxyManager.set_system_proxy(True)
         if success:
             self.is_connected = True
-            self.status_badge.configure(text="● 已连接 (AI 专线高速运行中)", text_color="#22c55e")
-            self.toggle_btn.configure(
-                text="✓ 专线已开启 (点击关闭)",
-                fg_color="#15803d",
-                hover_color="#166534"
-            )
+            self.update_connection_ui(True)
         else:
             self.status_badge.configure(text="● 开启代理失败，请检查权限", text_color="#ef4444")
 
@@ -387,12 +205,7 @@ bandwidth:
 
         WindowsProxyManager.set_system_proxy(False)
         self.is_connected = False
-        self.status_badge.configure(text="● 未连接", text_color="#71717a")
-        self.toggle_btn.configure(
-            text="⚡ 一键开启 AI 专线",
-            fg_color="#e11d48",
-            hover_color="#be123c"
-        )
+        self.update_connection_ui(False)
 
     def on_reset_key(self):
         if self.is_connected:
